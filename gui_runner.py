@@ -1,18 +1,67 @@
 import sys
 import subprocess
 from PyQt5.QtWidgets import (
-    QApplication, QWidget, QLabel, QLineEdit, QPushButton, QGridLayout, QMessageBox, QFileDialog, QHBoxLayout
+    QApplication, QWidget, QLabel, QLineEdit, QPushButton, QGridLayout,
+    QMessageBox, QFileDialog, QHBoxLayout, QVBoxLayout, QFrame
 )
+from PyQt5.QtGui import QFont
+from PyQt5.QtCore import Qt
 
-class CommandGUI(QWidget):
+class ExecutableRunnerGUI(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Executable Runner GUI")
+        self.setWindowTitle("Executable Runner")
+        self.setMinimumWidth(550)
+
+        # Apply formal blue-green gradient theme
+        self.setStyleSheet("""
+            QWidget {
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:1,
+                    stop:0 #009999, stop:1 #006666
+                );
+                font-family: 'Segoe UI';
+                font-size: 14px;
+                color: #ffffff;
+            }
+            QLabel {
+                font-weight: bold;
+                color: #ffffff;
+            }
+            QLineEdit {
+                padding: 6px;
+                border: 1px solid #ffffff;
+                border-radius: 6px;
+                background-color: #e0f7fa;
+                color: #003333;
+            }
+            QPushButton {
+                padding: 6px 15px;
+                background-color: #004d4d;
+                color: white;
+                border-radius: 8px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #008080;
+            }
+        """)
+
+        outer_layout = QVBoxLayout()
+
+        title = QLabel("Executable Command Input Interface")
+        title.setAlignment(Qt.AlignCenter)
+        title.setFont(QFont("Segoe UI", 18, QFont.Bold))
+        outer_layout.addWidget(title)
+
+        line = QFrame()
+        line.setFrameShape(QFrame.HLine)
+        line.setFrameShadow(QFrame.Sunken)
+        outer_layout.addWidget(line)
 
         layout = QGridLayout()
         self.fields = {}
 
-        # Define labels and flags
         self.flags = {
             '-b (Block)': '-b',
             '-p (Page)': '-p',
@@ -29,7 +78,7 @@ class CommandGUI(QWidget):
             layout.addWidget(self.fields[self.flags[label]], row, 1)
             row += 1
 
-        # Special case for -f (File Stream) with Browse
+        # File input with Browse
         file_label = QLabel("-f (File Stream Name)")
         self.file_input = QLineEdit()
         self.browse_button = QPushButton("Browse")
@@ -43,11 +92,12 @@ class CommandGUI(QWidget):
         layout.addLayout(file_layout, row, 1)
         row += 1
 
-        self.run_button = QPushButton("Run demo.exe")
+        self.run_button = QPushButton("Run Executable")
         self.run_button.clicked.connect(self.run_command)
-        layout.addWidget(self.run_button, row, 0, 1, 2)
+        layout.addWidget(self.run_button, row, 0, 1, 2, alignment=Qt.AlignCenter)
 
-        self.setLayout(layout)
+        outer_layout.addLayout(layout)
+        self.setLayout(outer_layout)
 
     def browse_file(self):
         file_name, _ = QFileDialog.getOpenFileName(self, "Select File")
@@ -55,7 +105,7 @@ class CommandGUI(QWidget):
             self.file_input.setText(file_name)
 
     def run_command(self):
-        exe_name = "demo.exe"  # change if needed
+        exe_name = "demo.exe"
         cmd = [exe_name]
 
         for flag, input_field in self.fields.items():
@@ -63,13 +113,12 @@ class CommandGUI(QWidget):
             if value:
                 cmd.extend([flag, value])
 
-        # Add file stream field if present
         file_path = self.file_input.text().strip()
         if file_path:
             cmd.extend(["-f", file_path])
 
         try:
-            result = subprocess.run(cmd, check=True)
+            subprocess.run(cmd, check=True)
             QMessageBox.information(self, "Success", f"{exe_name} ran successfully.")
         except FileNotFoundError:
             QMessageBox.critical(self, "Error", f"{exe_name} not found.")
@@ -78,6 +127,6 @@ class CommandGUI(QWidget):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    window = CommandGUI()
+    window = ExecutableRunnerGUI()
     window.show()
     sys.exit(app.exec_())
