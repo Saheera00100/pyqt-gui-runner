@@ -7,13 +7,13 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
 
-class ExecutableRunnerGUI(QWidget):
+class NANDFlashInterfaceGUI(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Executable Runner")
-        self.setMinimumWidth(550)
+        self.setWindowTitle("NAND_FLASH_INTERFACE")
+        self.setMinimumWidth(600)
 
-        # Apply formal blue-green gradient theme
+        # Style: blue-green gradient theme
         self.setStyleSheet("""
             QWidget {
                 background: qlineargradient(
@@ -49,52 +49,68 @@ class ExecutableRunnerGUI(QWidget):
 
         outer_layout = QVBoxLayout()
 
-        title = QLabel("Executable Command Input Interface")
+        # Title label
+        title = QLabel("NAND_FLASH_INTERFACE")
         title.setAlignment(Qt.AlignCenter)
         title.setFont(QFont("Segoe UI", 18, QFont.Bold))
         outer_layout.addWidget(title)
 
+        # Divider
         line = QFrame()
         line.setFrameShape(QFrame.HLine)
         line.setFrameShadow(QFrame.Sunken)
         outer_layout.addWidget(line)
 
         layout = QGridLayout()
-        self.fields = {}
 
-        self.flags = {
-            '-b (Block)': '-b',
-            '-p (Page)': '-p',
-            '-s (Plane Select)': '-s',
-            '-a (Column Address)': '-a',
-            '-S (Buffer Size)': '-S',
-            '-c (Chip Select) [0/1]': '-c',
+        # Friendly labels → CLI flags
+        self.field_map = {
+            "Memory Block Number:": ("-b", "Block index in flash memory."),
+            "Memory Page Number:": ("-p", "Page index within the block."),
+            "Memory Plane Index:": ("-s", "Plane number to read/write."),
+            "Column Address (in bytes):": ("-a", "Byte offset within the page."),
+            "Size of Buffer (in bytes):": ("-S", "Size of data to read/write."),
+            "Chip Selection (Enter 0 or 1):": ("-c", "Choose chip 0 or 1."),
         }
 
+        self.fields = {}
         row = 0
-        for label in self.flags:
-            self.fields[self.flags[label]] = QLineEdit()
-            layout.addWidget(QLabel(label), row, 0)
-            layout.addWidget(self.fields[self.flags[label]], row, 1)
+        for label_text, (flag, tooltip) in self.field_map.items():
+            input_field = QLineEdit()
+            input_field.setToolTip(tooltip)
+            self.fields[flag] = input_field
+
+            layout.addWidget(QLabel(label_text), row, 0)
+            layout.addWidget(input_field, row, 1)
             row += 1
 
-        # File input with Browse
-        file_label = QLabel("-f (File Stream Name)")
+        # File selection
+        file_label = QLabel("Input File to Process:")
         self.file_input = QLineEdit()
-        self.browse_button = QPushButton("Browse")
-        self.browse_button.clicked.connect(self.browse_file)
+        self.file_input.setToolTip("Select the input file that needs to be processed.")
+        browse_button = QPushButton("Browse")
+        browse_button.clicked.connect(self.browse_file)
 
         file_layout = QHBoxLayout()
         file_layout.addWidget(self.file_input)
-        file_layout.addWidget(self.browse_button)
+        file_layout.addWidget(browse_button)
 
         layout.addWidget(file_label, row, 0)
         layout.addLayout(file_layout, row, 1)
         row += 1
 
+        # Run + Help buttons
         self.run_button = QPushButton("Run Executable")
         self.run_button.clicked.connect(self.run_command)
-        layout.addWidget(self.run_button, row, 0, 1, 2, alignment=Qt.AlignCenter)
+
+        self.help_button = QPushButton("Help")
+        self.help_button.clicked.connect(self.show_help)
+
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(self.run_button)
+        button_layout.addWidget(self.help_button)
+
+        layout.addLayout(button_layout, row, 0, 1, 2, alignment=Qt.AlignCenter)
 
         outer_layout.addLayout(layout)
         self.setLayout(outer_layout)
@@ -125,8 +141,35 @@ class ExecutableRunnerGUI(QWidget):
         except subprocess.CalledProcessError:
             QMessageBox.critical(self, "Error", f"{exe_name} execution failed.")
 
+    def show_help(self):
+        help_text = """
+Help - Field Descriptions
+
+1. Memory Block Number:
+   The flash memory block to read/write from.
+
+2. Memory Page Number:
+   A sub-section within the selected block.
+
+3. Memory Plane Index:
+   Flash memory may have multiple planes — choose the index.
+
+4. Column Address (in bytes):
+   The byte offset where data starts in the page.
+
+5. Size of Buffer (in bytes):
+   Total number of bytes to read or write.
+
+6. Chip Selection (0 or 1):
+   Select chip 0 or chip 1 depending on hardware.
+
+7. Input File to Process:
+   Choose the data or command file to be processed.
+        """
+        QMessageBox.information(self, "Help", help_text.strip())
+
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    window = ExecutableRunnerGUI()
+    window = NANDFlashInterfaceGUI()
     window.show()
     sys.exit(app.exec_())
